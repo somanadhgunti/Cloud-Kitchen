@@ -1,0 +1,34 @@
+# .gitignore
+
+# Dependencies
+/backend/node_modules
+/cloud-kitchen-present/node_modules
+/node_modules
+# Keep 'dist' folder for deployment, but ignore build logs
+/dist
+/build
+/out
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.log
+.DS_Store
+
+# Environment variables (CRITICAL for security)
+.env
+.env.local
+.env.development.local
+.env.production.local
+
+# IDE/Editor files
+.vscode
+.idea
+
+# Uploads
+/public/images/uploads
+
+# Vercel/Netlify specific
+.vercel
+.netlify

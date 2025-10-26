@@ -1,0 +1,24 @@
+{
+    "version": 2,
+    "builds": [
+      {
+        "src": "cloud-kitchen-present/index.html",
+        "use": "@vercel/static-build",
+        "config": { "distDir": "cloud-kitchen-present/dist" }
+      },
+      {
+        "src": "backend/server.js",
+        "use": "@vercel/node"
+      }
+    ],
+    "routes": [
+      {
+        "src": "/api/(.*)",
+        "dest": "backend/server.js"
+      },
+      {
+        "src": "/(.*)",
+        "dest": "cloud-kitchen-present/index.html"
+      }
+    ]
+}
