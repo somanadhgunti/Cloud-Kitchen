@@ -10,19 +10,17 @@ const PORT = process.env.PORT || 5000;
 app.use(cors()); 
 app.use(express.json());
 
-// --- Nodemailer Transporter Setup (WITH TIMEOUT FIX) ---
-// Uses Vercel's injected environment variables
+// --- Nodemailer Transporter Setup for SendGrid/External Service ---
+// Uses environment variables set on Render: EMAIL_HOST, EMAIL_PORT, etc.
 const transporter = nodemailer.createTransport({
-    service: 'gmail', 
+    // Using environment variables for external SMTP service (SendGrid)
+    host: process.env.EMAIL_HOST,   // Should be smtp.sendgrid.net
+    port: process.env.EMAIL_PORT,   // Should be 587
+    secure: false,                  // Set to false for port 587 (uses STARTTLS)
     auth: {
-        user: process.env.EMAIL_USER, 
-        pass: process.env.EMAIL_PASS, 
+        user: process.env.EMAIL_USER, // Should be 'apikey'
+        pass: process.env.EMAIL_PASS, // Should be your SendGrid API Key
     },
-    // ✅ FIXES CONNECTION TIMEOUT ERROR ON RENDER
-    secure: true,   // Use SSL/TLS
-    port: 465,      // The secure port for Gmail SMTP
-    connectionTimeout: 60000, // Set timeout to 60 seconds (60000ms)
-    // --------------------------------------------------
 });
 
 // ---------------------------------------------
@@ -36,7 +34,8 @@ app.post('/api/contact', async (req, res) => {
     }
 
     const mailOptions = {
-        from: `"${name}" <${email}>`, 
+        // NOTE: The 'from' email must be the verified sender on SendGrid (231fa04974@gmail.com)
+        from: `"${name}" <${process.env.RECEIVER_EMAIL}>`, // Use verified sender email
         to: process.env.RECEIVER_EMAIL, 
         subject: `New Contact Form Submission from ${name}`,
         html: `
@@ -53,8 +52,8 @@ app.post('/api/contact', async (req, res) => {
         console.log(`Email successfully sent for Contact Form from ${email}`);
         res.status(200).json({ msg: 'Message successfully sent!' });
     } catch (error) {
-        // Logging the full error for better debugging
-        console.error('Error sending contact email:', error.message, error.code);
+        // This will log SendGrid errors if the key is wrong or sending fails.
+        console.error('Error sending contact email:', error.message, error.response);
         res.status(500).json({ msg: 'Failed to send email.', error: error.message });
     }
 });
@@ -70,7 +69,8 @@ app.post('/api/franchise', async (req, res) => {
     }
 
     const mailOptions = {
-        from: `"${fullName}" <${email}>`, 
+        // NOTE: The 'from' email must be the verified sender on SendGrid (231fa04974@gmail.com)
+        from: `"${fullName}" <${process.env.RECEIVER_EMAIL}>`, // Use verified sender email
         to: process.env.RECEIVER_EMAIL, 
         subject: `NEW FRANCHISE APPLICATION: ${fullName}`,
         html: `
@@ -88,8 +88,7 @@ app.post('/api/franchise', async (req, res) => {
         console.log(`Franchise application received from ${email}.`);
         res.status(200).json({ msg: 'Application successfully sent!' });
     } catch (error) {
-        // Logging the full error for better debugging
-        console.error('Error sending franchise email:', error.message, error.code);
+        console.error('Error sending franchise email:', error.message, error.response);
         res.status(500).json({ msg: 'Failed to send application.', error: error.message });
     }
 });
