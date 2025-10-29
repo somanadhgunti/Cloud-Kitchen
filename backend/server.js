@@ -1,33 +1,30 @@
-// backend/server.js
 const express = require('express');
 const nodemailer = require('nodemailer');
 const cors = require('cors');
 const app = express();
-// PORT definition is optional/only for local testing
 const PORT = process.env.PORT || 5000; 
 
-// --- Middleware Setup ---
-app.use(cors()); 
+const FRONTEND_URL = "https://cloud-kitchen-frontend-2ipt.onrender.com";
+
+const corsOptions = {
+    origin: FRONTEND_URL,
+    methods: "POST", 
+    allowedHeaders: "Content-Type, Authorization", 
+};
+
+app.use(cors(corsOptions)); 
 app.use(express.json());
 
-// --- Nodemailer Transporter Setup for SendGrid/External Service ---
-// Hardcoding SendGrid's host and port to bypass any environment variable loading issues
 const transporter = nodemailer.createTransport({
-    // ✅ NEW FIX: Hardcode SendGrid's official SMTP settings
     host: 'smtp.sendgrid.net',  
     port: 587,                  
-    secure: false,              // False for port 587 (uses STARTTLS)
-    // -----------------------------------------------------------------
+    secure: false,              
     auth: {
-        // These still pull the SendGrid 'apikey' and the long API Key
         user: process.env.EMAIL_USER, 
         pass: process.env.EMAIL_PASS, 
     },
 });
 
-// ---------------------------------------------
-// --- API Endpoint 1: POST /api/contact ---
-// ---------------------------------------------
 app.post('/api/contact', async (req, res) => {
     const { name, email, message } = req.body;
 
@@ -36,7 +33,6 @@ app.post('/api/contact', async (req, res) => {
     }
 
     const mailOptions = {
-        // Use verified sender email from Render environment variables
         from: `"${name}" <${process.env.RECEIVER_EMAIL}>`, 
         to: process.env.RECEIVER_EMAIL, 
         subject: `New Contact Form Submission from ${name}`,
@@ -51,18 +47,12 @@ app.post('/api/contact', async (req, res) => {
 
     try {
         await transporter.sendMail(mailOptions);
-        console.log(`Email successfully sent for Contact Form from ${email}`);
         res.status(200).json({ msg: 'Message successfully sent!' });
     } catch (error) {
-        // Logging the full SendGrid error response for final debugging
-        console.error('Error sending contact email:', error.message, JSON.stringify(error.response));
         res.status(500).json({ msg: 'Failed to send email.', error: error.message });
     }
 });
 
-// ---------------------------------------------
-// --- API Endpoint 2: POST /api/franchise ---
-// ---------------------------------------------
 app.post('/api/franchise', async (req, res) => {
     const { fullName, email, phone, message } = req.body;
 
@@ -86,14 +76,10 @@ app.post('/api/franchise', async (req, res) => {
 
     try {
         await transporter.sendMail(mailOptions);
-        console.log(`Franchise application received from ${email}.`);
         res.status(200).json({ msg: 'Application successfully sent!' });
     } catch (error) {
-        console.error('Error sending franchise email:', error.message, JSON.stringify(error.response));
         res.status(500).json({ msg: 'Failed to send application.', error: error.message });
     }
 });
 
-
-// --- CRITICAL DEPLOYMENT FIX: Export app instead of listening ---
 module.exports = app;
