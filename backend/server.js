@@ -6,8 +6,6 @@ const app = express();
 // PORT definition is optional/only for local testing
 const PORT = process.env.PORT || 5000; 
 
-// Middleware
-// FIX: Relax CORS for Vercel deployment
 app.use(cors()); 
 app.use(express.json());
 
