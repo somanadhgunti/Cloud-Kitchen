@@ -11,15 +11,17 @@ app.use(cors());
 app.use(express.json());
 
 // --- Nodemailer Transporter Setup for SendGrid/External Service ---
-// Uses environment variables set on Render: EMAIL_HOST, EMAIL_PORT, etc.
+// Hardcoding SendGrid's host and port to bypass any environment variable loading issues
 const transporter = nodemailer.createTransport({
-    // Using environment variables for external SMTP service (SendGrid)
-    host: process.env.EMAIL_HOST,   // Should be smtp.sendgrid.net
-    port: process.env.EMAIL_PORT,   // Should be 587
-    secure: false,                  // Set to false for port 587 (uses STARTTLS)
+    // ✅ NEW FIX: Hardcode SendGrid's official SMTP settings
+    host: 'smtp.sendgrid.net',  
+    port: 587,                  
+    secure: false,              // False for port 587 (uses STARTTLS)
+    // -----------------------------------------------------------------
     auth: {
-        user: process.env.EMAIL_USER, // Should be 'apikey'
-        pass: process.env.EMAIL_PASS, // Should be your SendGrid API Key
+        // These still pull the SendGrid 'apikey' and the long API Key
+        user: process.env.EMAIL_USER, 
+        pass: process.env.EMAIL_PASS, 
     },
 });
 
@@ -34,8 +36,8 @@ app.post('/api/contact', async (req, res) => {
     }
 
     const mailOptions = {
-        // NOTE: The 'from' email must be the verified sender on SendGrid (231fa04974@gmail.com)
-        from: `"${name}" <${process.env.RECEIVER_EMAIL}>`, // Use verified sender email
+        // Use verified sender email from Render environment variables
+        from: `"${name}" <${process.env.RECEIVER_EMAIL}>`, 
         to: process.env.RECEIVER_EMAIL, 
         subject: `New Contact Form Submission from ${name}`,
         html: `
@@ -52,8 +54,8 @@ app.post('/api/contact', async (req, res) => {
         console.log(`Email successfully sent for Contact Form from ${email}`);
         res.status(200).json({ msg: 'Message successfully sent!' });
     } catch (error) {
-        // This will log SendGrid errors if the key is wrong or sending fails.
-        console.error('Error sending contact email:', error.message, error.response);
+        // Logging the full SendGrid error response for final debugging
+        console.error('Error sending contact email:', error.message, JSON.stringify(error.response));
         res.status(500).json({ msg: 'Failed to send email.', error: error.message });
     }
 });
@@ -69,8 +71,7 @@ app.post('/api/franchise', async (req, res) => {
     }
 
     const mailOptions = {
-        // NOTE: The 'from' email must be the verified sender on SendGrid (231fa04974@gmail.com)
-        from: `"${fullName}" <${process.env.RECEIVER_EMAIL}>`, // Use verified sender email
+        from: `"${fullName}" <${process.env.RECEIVER_EMAIL}>`, 
         to: process.env.RECEIVER_EMAIL, 
         subject: `NEW FRANCHISE APPLICATION: ${fullName}`,
         html: `
@@ -88,7 +89,7 @@ app.post('/api/franchise', async (req, res) => {
         console.log(`Franchise application received from ${email}.`);
         res.status(200).json({ msg: 'Application successfully sent!' });
     } catch (error) {
-        console.error('Error sending franchise email:', error.message, error.response);
+        console.error('Error sending franchise email:', error.message, JSON.stringify(error.response));
         res.status(500).json({ msg: 'Failed to send application.', error: error.message });
     }
 });
