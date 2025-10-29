@@ -1,6 +1,7 @@
+// Contact.jsx
 import React, { useState } from "react";
 
-// 🚨 LIVE BACKEND URL: This must be the correct URL for your deployed backend service
+// The live URL of your backend service
 const BACKEND_URL = "https://cloud-kitchen-backend-fd07.onrender.com";
 
 export default function Contact() {
@@ -20,7 +21,7 @@ export default function Contact() {
     setSubmitStatus("Sending Message...");
 
     try {
-      // ✅ Fetch call uses the absolute live URL
+      // Fetch call uses the absolute live URL
       const response = await fetch(`${BACKEND_URL}/api/contact`, {
         method: "POST",
         headers: {
