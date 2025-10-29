@@ -1,20 +1,18 @@
+// backend/server.js (FINAL ATTEMPT using simple CORS and SMTP)
 const express = require('express');
 const nodemailer = require('nodemailer');
 const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 5000; 
+const RECEIVER_EMAIL = process.env.RECEIVER_EMAIL;
 
-const FRONTEND_URL = "https://cloud-kitchen-frontend-2ipt.onrender.com";
-
-const corsOptions = {
-    origin: FRONTEND_URL,
-    methods: "POST", 
-    allowedHeaders: "Content-Type, Authorization", 
-};
-
-app.use(cors(corsOptions)); 
+// --- Middleware Setup ---
+// ✅ Using simple, permissive CORS configuration from your working project
+app.use(cors()); 
 app.use(express.json());
 
+// --- Nodemailer Transporter Setup (Using SMTP) ---
+// Using the working project's structure (service: 'gmail') but hardcoding host/port for Render security
 const transporter = nodemailer.createTransport({
     host: 'smtp.sendgrid.net',  
     port: 587,                  
@@ -25,6 +23,9 @@ const transporter = nodemailer.createTransport({
     },
 });
 
+// ---------------------------------------------
+// --- API Endpoint 1: POST /api/contact ---
+// ---------------------------------------------
 app.post('/api/contact', async (req, res) => {
     const { name, email, message } = req.body;
 
@@ -33,8 +34,8 @@ app.post('/api/contact', async (req, res) => {
     }
 
     const mailOptions = {
-        from: `"${name}" <${process.env.RECEIVER_EMAIL}>`, 
-        to: process.env.RECEIVER_EMAIL, 
+        from: `"${name}" <${RECEIVER_EMAIL}>`, 
+        to: RECEIVER_EMAIL, 
         subject: `New Contact Form Submission from ${name}`,
         html: `
             <h3>New Contact Message</h3>
@@ -49,10 +50,15 @@ app.post('/api/contact', async (req, res) => {
         await transporter.sendMail(mailOptions);
         res.status(200).json({ msg: 'Message successfully sent!' });
     } catch (error) {
+        // Logging the full error response for final debugging
+        console.error('Error sending contact email:', error.message, error.response);
         res.status(500).json({ msg: 'Failed to send email.', error: error.message });
     }
 });
 
+// ---------------------------------------------
+// --- API Endpoint 2: POST /api/franchise ---
+// ---------------------------------------------
 app.post('/api/franchise', async (req, res) => {
     const { fullName, email, phone, message } = req.body;
 
@@ -61,8 +67,8 @@ app.post('/api/franchise', async (req, res) => {
     }
 
     const mailOptions = {
-        from: `"${fullName}" <${process.env.RECEIVER_EMAIL}>`, 
-        to: process.env.RECEIVER_EMAIL, 
+        from: `"${fullName}" <${RECEIVER_EMAIL}>`, 
+        to: RECEIVER_EMAIL, 
         subject: `NEW FRANCHISE APPLICATION: ${fullName}`,
         html: `
             <h3>New Franchise Application Received</h3>
@@ -78,8 +84,13 @@ app.post('/api/franchise', async (req, res) => {
         await transporter.sendMail(mailOptions);
         res.status(200).json({ msg: 'Application successfully sent!' });
     } catch (error) {
+        console.error('Error sending franchise email:', error.message, error.response);
         res.status(500).json({ msg: 'Failed to send application.', error: error.message });
     }
 });
 
-module.exports = app;
+
+// ✅ NEW: Replace module.exports with app.listen() to match your working project's deployment method
+app.listen(PORT, () => {
+    console.log(`🚀 Server is running on port ${PORT}`);
+});

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-// 🚨 LIVE BACKEND URL: Define the base URL once for clarity
+// 🚨 LIVE BACKEND URL: The base URL remains correct
 const BACKEND_URL = "https://cloud-kitchen-backend-fd07.onrender.com";
 
 export default function Franchise() {
@@ -24,7 +24,7 @@ export default function Franchise() {
     setSubmitStatus("Sending Application...");
 
     try {
-      // ✅ Updated fetch call using the absolute BACKEND_URL
+      // ✅ Fetch call is correct, relying on the backend's now-simple CORS setting
       const response = await fetch(`${BACKEND_URL}/api/franchise`, {
         method: "POST",
         headers: {
