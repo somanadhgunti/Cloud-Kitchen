@@ -1,4 +1,4 @@
-// backend/server.js (FINAL ATTEMPT using simple CORS and SMTP)
+// backend/server.js
 const express = require('express');
 const nodemailer = require('nodemailer');
 const cors = require('cors');
@@ -7,19 +7,19 @@ const PORT = process.env.PORT || 5000;
 const RECEIVER_EMAIL = process.env.RECEIVER_EMAIL;
 
 // --- Middleware Setup ---
-// ✅ Using simple, permissive CORS configuration from your working project
+// Simple CORS configuration, matching your working project setup
 app.use(cors()); 
 app.use(express.json());
 
-// --- Nodemailer Transporter Setup (Using SMTP) ---
-// Using the working project's structure (service: 'gmail') but hardcoding host/port for Render security
+// --- Nodemailer Transporter Setup (Using SendGrid SMTP) ---
 const transporter = nodemailer.createTransport({
+    // Hardcoded SendGrid host/port to bypass Render firewall issues
     host: 'smtp.sendgrid.net',  
     port: 587,                  
     secure: false,              
     auth: {
-        user: process.env.EMAIL_USER, 
-        pass: process.env.EMAIL_PASS, 
+        user: process.env.EMAIL_USER, // SendGrid Username: apikey
+        pass: process.env.EMAIL_PASS, // SendGrid API Key
     },
 });
 
@@ -50,7 +50,6 @@ app.post('/api/contact', async (req, res) => {
         await transporter.sendMail(mailOptions);
         res.status(200).json({ msg: 'Message successfully sent!' });
     } catch (error) {
-        // Logging the full error response for final debugging
         console.error('Error sending contact email:', error.message, error.response);
         res.status(500).json({ msg: 'Failed to send email.', error: error.message });
     }
@@ -90,7 +89,7 @@ app.post('/api/franchise', async (req, res) => {
 });
 
 
-// ✅ NEW: Replace module.exports with app.listen() to match your working project's deployment method
+// ✅ Final Deployment Fix: Use app.listen() to run the server on Render, matching your working project.
 app.listen(PORT, () => {
     console.log(`🚀 Server is running on port ${PORT}`);
 });
