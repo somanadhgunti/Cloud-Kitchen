@@ -1,84 +1,80 @@
-// src/context/AuthContext.jsx
+// src/context/AuthContext.jsx (Vite Adjusted)
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { INITIAL_ORDERS } from '../data/mock';
+import axios from 'axios';
 
-// Local Storage Keys
-const AUTH_KEY = 'isAdminLoggedIn';
-const ORDERS_KEY = 'cloudKitchenOrders';
+const API_URL = import.meta.env.VITE_API_BASE_URL; // Adjusted for Vite
+const AUTH_TOKEN_KEY = 'adminToken'; 
 
-// Helper functions (initializeOrders, getNextOrderId) remain the same...
-const initializeOrders = () => {
-    if (!localStorage.getItem(ORDERS_KEY)) {
-        localStorage.setItem(ORDERS_KEY, JSON.stringify(INITIAL_ORDERS));
-    }
-    return JSON.parse(localStorage.getItem(ORDERS_KEY));
-};
-
-const getNextOrderId = () => {
-    const orders = initializeOrders();
-    const lastId = orders.length > 0 
-        ? orders.slice(-1)[0].id 
-        : 'CKO-000';
-    
-    const nextNumber = parseInt(lastId.split('-')[1]) + 1;
-    return `CKO-${String(nextNumber).padStart(3, '0')}`;
-};
-
-// 1. Create the Context
 export const AuthContext = createContext();
 
-// 2. Create a Provider component
 export const AuthProvider = ({ children }) => {
-    // Auth State
-    const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(
-        sessionStorage.getItem(AUTH_KEY) === 'true'
-    );
+    const [token, setToken] = useState(localStorage.getItem(AUTH_TOKEN_KEY));
+    const isAdminLoggedIn = !!token; 
 
-    // Auth Functions (login, logout remain the same)
-    const login = () => {
-        setIsAdminLoggedIn(true);
-        sessionStorage.setItem(AUTH_KEY, 'true');
-    };
-    const logout = () => {
-        setIsAdminLoggedIn(false);
-        sessionStorage.removeItem(AUTH_KEY);
-    };
+    const getConfig = useCallback(() => ({
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+        },
+    }), [token]);
 
-    // Order Function: Writes directly to Local Storage (addOrder remains the same)
-    const addOrder = useCallback((newOrderData) => {
-        const orderId = getNextOrderId();
-        const fullOrder = { ...newOrderData, id: orderId };
-        
-        const currentOrders = initializeOrders();
-        const updatedOrders = [...currentOrders, fullOrder];
-        
-        localStorage.setItem(ORDERS_KEY, JSON.stringify(updatedOrders));
-        
-        console.log(`Order ${orderId} saved to Local Storage.`);
-        return orderId;
+    // --- AUTH FUNCTIONS ---
+    const login = useCallback(async (email, password) => {
+        try {
+            const config = { headers: { 'Content-Type': 'application/json' } };
+            const { data } = await axios.post(`${API_URL}/users/login`, { email, password }, config);
+            
+            localStorage.setItem(AUTH_TOKEN_KEY, data.token);
+            setToken(data.token);
+            return data;
+        } catch (error) {
+            throw new Error(error.response?.data?.message || 'Login failed');
+        }
     }, []);
 
-    // Order Function: Reads directly from Local Storage (getOrders remains the same)
-    const getOrders = useCallback(() => {
-        return initializeOrders();
+    const logout = useCallback(() => {
+        localStorage.removeItem(AUTH_TOKEN_KEY);
+        setToken(null);
     }, []);
+
+    // --- ORDER FUNCTIONS ---
     
-    // --- NEW FUNCTION: Update order status and persist to Local Storage ---
-    const updateOrderStatus = useCallback((orderId, newStatus) => {
-        const currentOrders = initializeOrders();
-        
-        const updatedOrders = currentOrders.map(order => {
-            if (order.id === orderId) {
-                console.log(`Order ${orderId} status changed to ${newStatus}`);
-                return { ...order, status: newStatus };
-            }
-            return order;
-        });
-        
-        localStorage.setItem(ORDERS_KEY, JSON.stringify(updatedOrders));
-        return updatedOrders;
+    const addOrder = useCallback(async (newOrderData) => {
+        try {
+            const { data } = await axios.post(`${API_URL}/orders`, newOrderData);
+            console.log(`Order ${data.orderId} saved to database.`);
+            return data.orderId;
+        } catch (error) {
+            console.error('Order Submission Error:', error);
+            throw new Error('Could not submit order.');
+        }
     }, []);
-    // ---------------------------------------------------------------------
+
+    const getOrders = useCallback(async () => {
+        if (!isAdminLoggedIn) return [];
+        try {
+            const { data } = await axios.get(`${API_URL}/orders`, getConfig());
+            return data;
+        } catch (error) {
+            console.error('Failed to fetch orders:', error);
+            if(error.response?.status === 401) logout(); 
+            return [];
+        }
+    }, [isAdminLoggedIn, getConfig, logout]);
+    
+    const updateOrderStatus = useCallback(async (orderId, newStatus) => {
+        if (!isAdminLoggedIn) return;
+        try {
+            await axios.put(
+                `${API_URL}/orders/${orderId}/status`,
+                { newStatus },
+                getConfig()
+            );
+        } catch (error) {
+            console.error('Failed to update status:', error);
+            throw new Error('Failed to update status.');
+        }
+    }, [isAdminLoggedIn, getConfig]);
 
     const contextValue = { 
         isAdminLoggedIn, 
@@ -86,7 +82,8 @@ export const AuthProvider = ({ children }) => {
         logout,
         getOrders,
         addOrder,
-        updateOrderStatus, // EXPORT NEW FUNCTION
+        updateOrderStatus,
+        getToken: () => token, 
     };
 
     return (
@@ -96,5 +93,4 @@ export const AuthProvider = ({ children }) => {
     );
 };
 
-// 3. Custom Hook for easy access
 export const useAuth = () => useContext(AuthContext);
